@@ -15,40 +15,41 @@ import com.google.inject.Injector;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
+import javax.inject.Singleton;
 import org.eclipse.che.commons.annotation.Nullable;
 import org.eclipse.che.multiuser.keycloak.server.oauth2.DelegatedOAuthAPI;
 import org.eclipse.che.security.oauth.EmbeddedOAuthAPI;
 import org.eclipse.che.security.oauth.OAuthAPI;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Provides appropriate OAuth Authentication API depending on configuration.
  *
  * @author Mykhailo Kuznietsov.
+ * @author Sergii Kabashniuk.
  */
+@Singleton
 public class OAuthAPIProvider implements Provider<OAuthAPI> {
-  private static final Logger LOG = LoggerFactory.getLogger(OAuthAPIProvider.class);
-  private String oauthType;
-  private Injector injector;
+  private final OAuthAPI oAuthAPI;
 
   @Inject
   public OAuthAPIProvider(
       @Nullable @Named("che.oauth.service_mode") String oauthType, Injector injector) {
-    this.oauthType = oauthType;
-    this.injector = injector;
-  }
 
-  @Override
-  public OAuthAPI get() {
     switch (oauthType) {
       case "embedded":
-        return injector.getInstance(EmbeddedOAuthAPI.class);
+        oAuthAPI = injector.getInstance(EmbeddedOAuthAPI.class);
+        break;
       case "delegated":
-        return injector.getInstance(DelegatedOAuthAPI.class);
+        oAuthAPI = injector.getInstance(DelegatedOAuthAPI.class);
+        break;
       default:
         throw new RuntimeException(
             "Unknown value configured for \"che.oauth.service_mode\", must be either \"embedded\", or \"delegated\"");
     }
+  }
+
+  @Override
+  public OAuthAPI get() {
+    return oAuthAPI;
   }
 }
